@@ -21,6 +21,8 @@ RUN apt-get update && \
         libssl-dev \
         node-less \
         npm \
+        git \
+        python3-dev \
         python3-magic \
         python3-num2words \
         python3-odf \
@@ -36,6 +38,17 @@ RUN apt-get update && \
         python3-watchdog \
         python3-xlrd \
         python3-xlwt \
+        python3-psycopg2 \
+        python3-ldap \
+        libldap2-dev \
+        libsasl2-dev \
+        ldap-utils \
+        tox \
+        lcov \
+        valgrind \
+        gcc \
+        build-essential \
+        python3-gevent \
         xz-utils && \
     if [ -z "${TARGETARCH}" ]; then \
         TARGETARCH="$(dpkg --print-architecture)"; \
@@ -65,34 +78,34 @@ RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ jammy-pgdg main' > /etc/a
     && rm -f /etc/apt/sources.list.d/pgdg.list \
     && rm -rf /var/lib/apt/lists/*
 
+
 # Install rtlcss (on Debian buster)
 RUN npm install -g rtlcss
 
-# Install Odoo
-ENV ODOO_VERSION 17.0
-ARG ODOO_RELEASE=20240104
-ARG ODOO_SHA=d6f7e9309786857f820333698010903b1c621c5e
-RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/odoo_${ODOO_VERSION}.${ODOO_RELEASE}_all.deb \
-    && echo "${ODOO_SHA} odoo.deb" | sha1sum -c - \
-    && apt-get update \
-    && apt-get -y install --no-install-recommends ./odoo.deb \
-    && rm -rf /var/lib/apt/lists/* odoo.deb
+# Install odoo
+RUN adduser --disabled-password --home /opt/odoo --gecos '' odoo
+RUN mkdir /etc/odoo && mkdir /tmp/odoo/
+RUN git clone --depth=1 --branch=17.0 https://github.com/odoo/odoo.git /opt/odoo/server
+RUN pip3 install --upgrade pip
+RUN cd /opt/odoo/server && pip3 install -r requirements.txt
 
-# Copy entrypoint script and Odoo configuration file
+# Copy entrypoint script and odoo configuration file
 COPY ./entrypoint.sh /
-COPY ./odoo.conf /etc/odoo/
+COPY ./config/odoo.conf /etc/odoo/
 
 # Set permissions and Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
 RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
-    && chown -R odoo /mnt/extra-addons
+    && mkdir -p /var/lib/odoo \
+    && chown -R odoo /mnt/extra-addons \
+    && chown -R odoo /var/lib/odoo
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
-
-# Expose Odoo services
+RUN ln -s /opt/odoo/server/odoo-bin /usr/bin/odoo-bin
+# Expose odoo services
 EXPOSE 8069 8071 8072
 
 # Set the default config file
-ENV ODOO_RC /etc/odoo/odoo.conf
+ENV odoo_RC /etc/odoo/odoo.conf
 
 COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
@@ -100,4 +113,4 @@ COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
 USER odoo
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["odoo"]
+CMD ["odoo-bin"]
