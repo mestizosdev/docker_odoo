@@ -1,16 +1,13 @@
 version: '3.1'
 services:
   web:
-    image: odoo:17.0
+    build:
+      context: ./
+      dockerfile: Dockerfile
     depends_on:
       - db
     ports:
       - "8069:8069"
-    volumes:
-      - odoo-web-data:/var/lib/odoo
-      - ./config:/etc/odoo
-      - ./my_addons:/mnt/extra-addons
-      - ./log:/var/log/odoo
     environment:
       - HOST=db
       - USER=odoo
@@ -22,9 +19,3 @@ services:
       - POSTGRES_USER=odoo
       - POSTGRES_PASSWORD=odoo
       - PGDATA=/var/lib/postgresql/data/pgdata
-    volumes:
-      - odoo-db-data:/var/lib/postgresql/data
-    
-volumes:
-  odoo-web-data:
-  odoo-db-data:
