@@ -104,7 +104,7 @@ RUN chown odoo /etc/odoo/odoo.conf \
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 
 # Install Odoo modules
-RUN git clone --depth=1 --branch=17.0 https://github.com/Odoo-EC/l10n-ecuador /mnt/extra-addons
+RUN git clone --depth=1 --branch=17.0 https://github.com/OCA/l10n-ecuador.git /mnt/extra-addons
 RUN cd /mnt/extra-addons && pip3 install -r requirements.txt
 
 
